@@ -11,6 +11,8 @@ Deploy to S3 by checking whether the file contents have actually changed, rather
 python s3-sync-changes.py [-h] [--acl ACL] [--dryrun] [--workers WORKERS] [--max-objects MAX_OBJECTS] [--verbose] [--exclude EXCLUDE] source dest
 ```
 
+It calls the `aws s3api` command under-the-hood, so please ensure that [AWS CLI](https://docs.aws.amazon.com/streams/latest/dev/setup-awscli.html) is installed and configured correctly.
+
 ### Example
 ```bash
 python s3-sync-changes.py . s3://my-bucket/path/to/dir --exclude .git --exclude README.md --acl public-read
