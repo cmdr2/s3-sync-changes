@@ -157,7 +157,7 @@ if __name__ == "__main__":
     parser.add_argument("dest", help="Destination S3 path (s3://bucket/prefix)")
     parser.add_argument("--acl", help="Canned ACL to apply to uploaded files", default=None)
     parser.add_argument("--dryrun", action="store_true", help="Perform a dry run without uploading")
-    parser.add_argument("--workers", type=int, default=4, help="Number of parallel uploads")
+    parser.add_argument("--workers", type=int, default=10, help="Number of parallel uploads")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument(
         "--exclude",
