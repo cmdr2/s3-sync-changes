@@ -31,9 +31,10 @@ def get_local_etag(path: Path, chunk_size=8 * 1024 * 1024):
         return f"{hashlib.md5(digests).hexdigest()}-{len(md5s)}"
 
 
-def get_remote_etags(bucket: str, prefix: str = ""):
+def get_remote_etags(bucket: str, prefix: str = "", max_objects: int = None):
     etags = {}
     continuation_token = None
+    total_objects = 0
     while True:
         cmd = ["aws", "s3api", "list-objects-v2", "--bucket", bucket, "--output", "json"]
         if prefix:
@@ -45,6 +46,14 @@ def get_remote_etags(bucket: str, prefix: str = ""):
         objects = data.get("Contents", [])
         for obj in objects:
             etags[obj["Key"]] = obj["ETag"].strip('"')
+        total_objects += len(objects)
+        if max_objects is not None and total_objects > max_objects:
+            print(
+                f"Error: More than {max_objects} objects found in the bucket.\n"
+                f"This prevents excessive ListBucket calls on large buckets, since each ListBucket call returns 1000 entries.\n"
+                f"If you want to sync more objects, increase --max-objects."
+            )
+            break
         if data.get("IsTruncated"):
             continuation_token = data.get("NextContinuationToken")
             if not continuation_token:
@@ -117,9 +126,9 @@ def discover_files(source_path, excludes):
     return files
 
 
-def plan_uploads(files, bucket, prefix, verbose):
+def plan_uploads(files, bucket, prefix, verbose, max_objects=None):
     to_upload = []
-    remote_etags = get_remote_etags(bucket, prefix)
+    remote_etags = get_remote_etags(bucket, prefix, max_objects)
     for rel_key, path in files:
         key = f"{prefix}/{rel_key}" if prefix else rel_key
         key = key.lstrip("/")
@@ -133,7 +142,14 @@ def plan_uploads(files, bucket, prefix, verbose):
 
 
 def sync(
-    source: str, dest: str, workers: int = 4, acl: str = None, dryrun: bool = False, excludes=[], verbose: bool = False
+    source: str,
+    dest: str,
+    workers: int = 4,
+    acl: str = None,
+    dryrun: bool = False,
+    excludes=[],
+    verbose: bool = False,
+    max_objects: int = 3000,
 ):
     bucket, prefix = parse_s3_dest(dest)
     source_path = Path(source)
@@ -142,7 +158,14 @@ def sync(
         sys.exit(1)
 
     files = discover_files(source_path, excludes)
-    to_upload = plan_uploads(files, bucket, prefix, verbose)
+    if len(files) > max_objects:
+        print(
+            f"Error: Number of local files to upload ({len(files)}) exceeds the limit of --max-objects ({max_objects}).\n"
+            f"This prevents excessive ListBucket calls on large buckets, since each ListBucket call returns 1000 entries.\n"
+            f"If you want to sync more objects, increase --max-objects."
+        )
+        sys.exit(1)
+    to_upload = plan_uploads(files, bucket, prefix, verbose, max_objects)
     total = len(to_upload)
     if total == 0:
         print("All files are up to date.")
@@ -166,6 +189,7 @@ if __name__ == "__main__":
     parser.add_argument("--acl", help="Canned ACL to apply to uploaded files", default=None)
     parser.add_argument("--dryrun", action="store_true", help="Perform a dry run without uploading")
     parser.add_argument("--workers", type=int, default=10, help="Number of parallel uploads")
+    parser.add_argument("--max-objects", type=int, default=3000, help="Maximum number of objects to sync")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument(
         "--exclude",
@@ -174,4 +198,4 @@ if __name__ == "__main__":
         help="Exclude files/folders (supports wildcards, can be used multiple times)",
     )
     args = parser.parse_args()
-    sync(args.source, args.dest, args.workers, args.acl, args.dryrun, args.exclude, args.verbose)
+    sync(args.source, args.dest, args.workers, args.acl, args.dryrun, args.exclude, args.verbose, args.max_objects)

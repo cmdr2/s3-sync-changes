@@ -8,7 +8,7 @@ Deploy to S3 by checking whether the file contents have actually changed, rather
 
 ### Usage
 ```bash
-python s3-sync-changes.py [-h] [--acl ACL] [--dryrun] [--workers WORKERS] [--verbose] [--exclude EXCLUDE] source dest
+python s3-sync-changes.py [-h] [--acl ACL] [--dryrun] [--workers WORKERS] [--max-objects MAX_OBJECTS] [--verbose] [--exclude EXCLUDE] source dest
 ```
 
 ### Example
@@ -20,6 +20,15 @@ python s3-sync-changes.py . s3://my-bucket/path/to/dir --exclude .git --exclude 
 It calls `aws s3api list-objects-v2` upon a bucket (with an optional `prefix`), and compares the returned `Etag` values with the `Etag` values of the local files. It then uploads the changed files by calling `aws s3api put-object` for each file.
 
 The files are uploaded on multiple threads, configurable using the `--workers` argument. E.g. `--workers 4` to upload on 4 threads.
+
+### About --max-objects
+By default, the script will sync up to 3000 objects. This is a safety limit to prevent accidental mass operations on very large buckets or local directories. If you need to sync more than 3000 files, you can increase this limit using the `--max-objects` argument:
+
+```bash
+python s3-sync-changes.py . s3://my-bucket/path --max-objects 10000
+```
+
+If the number of local files or remote S3 objects exceeds this limit, the script will exit with an error. This helps avoid excessive AWS API calls and accidental large syncs. Adjust the value as needed for your use case.
 
 ### Required IAM Permissions
 
