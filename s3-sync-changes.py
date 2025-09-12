@@ -32,15 +32,25 @@ def get_local_etag(path: Path, chunk_size=8 * 1024 * 1024):
 
 
 def get_remote_etags(bucket: str, prefix: str = ""):
-    cmd = ["aws", "s3api", "list-objects-v2", "--bucket", bucket, "--output", "json"]
-    if prefix:
-        cmd += ["--prefix", prefix]
-    result = subprocess.run(cmd, capture_output=True, check=True, text=True)
-    data = json.loads(result.stdout)
-    objects = data.get("Contents", [])
     etags = {}
-    for obj in objects:
-        etags[obj["Key"]] = obj["ETag"].strip('"')
+    continuation_token = None
+    while True:
+        cmd = ["aws", "s3api", "list-objects-v2", "--bucket", bucket, "--output", "json"]
+        if prefix:
+            cmd += ["--prefix", prefix]
+        if continuation_token:
+            cmd += ["--continuation-token", continuation_token]
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        data = json.loads(result.stdout)
+        objects = data.get("Contents", [])
+        for obj in objects:
+            etags[obj["Key"]] = obj["ETag"].strip('"')
+        if data.get("IsTruncated"):
+            continuation_token = data.get("NextContinuationToken")
+            if not continuation_token:
+                break
+        else:
+            break
     return etags
 
 
@@ -150,8 +160,6 @@ def sync(
 
 
 if __name__ == "__main__":
-    print("WARNING: The current version only syncs up to 1000 files!\n")
-
     parser = argparse.ArgumentParser(description="Sync local files to S3 path.")
     parser.add_argument("source", help="Source file or directory")
     parser.add_argument("dest", help="Destination S3 path (s3://bucket/prefix)")
