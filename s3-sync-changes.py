@@ -79,8 +79,8 @@ def upload_file(
         cmd += ["--acl", acl]
     if verbose:
         print(cmd)
-    # if not dryrun:
-    #     subprocess.run(cmd, check=True)
+    if not dryrun:
+        subprocess.run(cmd, check=True)
     with lock:
         print(f"[{idx}/{total}] Uploaded {key}")
 
