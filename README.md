@@ -3,8 +3,8 @@
 Deploy to S3 by checking whether the file contents have actually changed, rather than simply checking the file timestamp like `aws s3 sync` does.
 
 ### Why?
-- `aws s3 sync` ends up uploading *everything* when run in a GitHub Action, because git resets the file timestamps upon checkout. The commonly recommended workaround of `--size-only` is risky, since you might miss uploading changes if the file size doesn't change (e.g. changing a single digit in a config).
-- Large static websites that often regenerate thousands of files even if the contents haven't changed.
+- `aws s3 sync` ends up uploading *everything* when run in a GitHub Action, because git resets the file timestamps upon checkout. The commonly recommended workaround of `--size-only` is risky, since you might miss uploading changes if the file size doesn't change (e.g. changing a single digit in a config file).
+- Static site generators for large static websites, which often regenerate thousands of files even if the contents haven't changed.
 
 ### Usage
 ```bash
