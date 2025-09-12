@@ -74,7 +74,7 @@ def upload_file(
     dryrun: bool = False,
     verbose: bool = False,
 ):
-    cmd = ["aws", "s3api", "put-object", "--bucket", bucket, "--key", key, "--body", str(path)]
+    cmd = ["aws", "s3", "cp", str(path), f"s3://{bucket}/{key}"]
     if acl:
         cmd += ["--acl", acl]
     if verbose:
