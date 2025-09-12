@@ -16,6 +16,11 @@ python s3-sync-changes.py [-h] [--acl ACL] [--dryrun] [--workers WORKERS] [--ver
 python s3-sync-changes.py . s3://my-bucket/path/to/dir --exclude .git --exclude README.md --acl public-read
 ```
 
+### How does this work?
+It calls `aws s3api list-objects-v2` upon a bucket (with an optional `prefix`), and compares the returned `Etag` values with the `Etag` values of the local files. It then uploads the changed files by calling `aws s3api put-object` for each file.
+
+The files are uploaded on multiple threads, configurable using the `--workers` argument. E.g. `--workers 4` to upload on 4 threads.
+
 ### Required IAM Permissions
 
 The script uses the AWS CLI to interact with S3. The following IAM permissions are required for the S3 bucket you are syncing to:
