@@ -6,6 +6,8 @@ Deploy to S3 by checking whether the file contents have actually changed, rather
 - `aws s3 sync` ends up uploading *everything* when run in a GitHub Action, because git resets the file timestamps upon checkout. The commonly recommended workaround of `--size-only` is risky, since you might miss uploading changes if the file size doesn't change (e.g. changing a single digit in a config file).
 - Static site generators for large static websites often regenerate thousands of files even if the contents haven't changed.
 
+**Important:** This script isn't a good idea for large buckets (>10k objects) or buckets with frequent syncs (several times a day), because `ListBucket` requests cost more.
+
 ### Usage
 ```bash
 python s3-sync-changes.py [-h] [--acl ACL] [--dryrun] [--workers WORKERS] [--max-objects MAX_OBJECTS] [--verbose] [--exclude EXCLUDE] source dest
