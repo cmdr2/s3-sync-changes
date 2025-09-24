@@ -8,6 +8,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 import argparse
+import mimetypes
 
 
 def get_local_etag(path: Path, chunk_size=8 * 1024 * 1024):
@@ -74,12 +75,17 @@ def upload_file(
     dryrun: bool = False,
     verbose: bool = False,
     content_encoding: str = None,
+    auto_content_type: bool = False,
 ):
     cmd = ["aws", "s3", "cp", str(path), f"s3://{bucket}/{key}"]
     if acl:
         cmd += ["--acl", acl]
     if content_encoding:
         cmd += ["--content-encoding", content_encoding]
+    if auto_content_type:
+        content_type, _ = mimetypes.guess_type(str(path))
+        if content_type:
+            cmd += ["--content-type", content_type]
     if verbose:
         print(cmd)
     if not dryrun:
@@ -154,6 +160,7 @@ def sync(
     verbose: bool = False,
     max_objects: int = 3000,
     content_encoding: str = None,
+    auto_content_type: bool = False,
 ):
     bucket, prefix = parse_s3_dest(dest)
     source_path = Path(source)
@@ -179,7 +186,20 @@ def sync(
     lock = Lock()
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = [
-            executor.submit(upload_file, bucket, key, path, i + 1, total, lock, acl, dryrun, verbose, content_encoding)
+            executor.submit(
+                upload_file,
+                bucket,
+                key,
+                path,
+                i + 1,
+                total,
+                lock,
+                acl,
+                dryrun,
+                verbose,
+                content_encoding,
+                auto_content_type,
+            )
             for i, (key, path) in enumerate(to_upload)
         ]
         for _ in as_completed(futures):
@@ -206,6 +226,12 @@ if __name__ == "__main__":
         help="Content-Encoding header to apply to uploaded files",
         default=None,
     )
+    parser.add_argument(
+        "--auto-content-type",
+        action="store_true",
+        help="Automatically set content-type based on file extension",
+        default=False,
+    )
     args = parser.parse_args()
     sync(
         args.source,
@@ -217,4 +243,5 @@ if __name__ == "__main__":
         args.verbose,
         args.max_objects,
         args.content_encoding,
+        args.auto_content_type,
     )
