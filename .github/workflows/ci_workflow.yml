@@ -11,31 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Copy files into the build
-      run: |-
-        mkdir build
-        rsync -av s3-sync-changes.py build/
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: build
-        path: build
-  deploy_to_gh_release_on_release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    if: github.event_name == 'release' && github.event.action == 'created'
-    needs: build
-    steps:
-    - name: Download Artifact
-      uses: actions/download-artifact@v5
-      with:
-        name: build
-        path: .
     - name: Release
       uses: softprops/action-gh-release@v2
       if: github.ref_type == 'tag'
