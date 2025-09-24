@@ -9,17 +9,17 @@ Deploy to S3 by checking whether the file contents have actually changed, rather
 **Important:** This script isn't a good idea for large buckets (>10k objects) or buckets with frequent syncs (several times a day), because `ListBucket` requests cost more.
 
 ### Usage
-```bash
+`
 python s3-sync-changes.py [-h] [--acl ACL] [--dryrun] [--workers WORKERS] [--max-objects MAX_OBJECTS] [--verbose] [--exclude EXCLUDE] [--content-encoding ENCODING] [--auto-content-type] source dest
-```
+`
 
 It calls the `aws s3api` command under-the-hood, so please ensure that [AWS CLI](https://docs.aws.amazon.com/streams/latest/dev/setup-awscli.html) is installed and configured correctly.
 
 ### Example
 
-```bash
+`
 python s3-sync-changes.py . s3://my-bucket/path/to/dir --exclude .git --exclude README.md --acl public-read --auto-content-type
-```
+`
 
 #### About --auto-content-type
 Use `--auto-content-type` to automatically set the `Content-Type` header based on the file extension (using Python's `mimetypes`). This helps browsers and clients interpret files correctly when served from S3.
