@@ -73,10 +73,13 @@ def upload_file(
     acl: str = None,
     dryrun: bool = False,
     verbose: bool = False,
+    content_encoding: str = None,
 ):
     cmd = ["aws", "s3", "cp", str(path), f"s3://{bucket}/{key}"]
     if acl:
         cmd += ["--acl", acl]
+    if content_encoding:
+        cmd += ["--content-encoding", content_encoding]
     if verbose:
         print(cmd)
     if not dryrun:
@@ -150,6 +153,7 @@ def sync(
     excludes=[],
     verbose: bool = False,
     max_objects: int = 3000,
+    content_encoding: str = None,
 ):
     bucket, prefix = parse_s3_dest(dest)
     source_path = Path(source)
@@ -175,7 +179,7 @@ def sync(
     lock = Lock()
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = [
-            executor.submit(upload_file, bucket, key, path, i + 1, total, lock, acl, dryrun, verbose)
+            executor.submit(upload_file, bucket, key, path, i + 1, total, lock, acl, dryrun, verbose, content_encoding)
             for i, (key, path) in enumerate(to_upload)
         ]
         for _ in as_completed(futures):
@@ -197,5 +201,20 @@ if __name__ == "__main__":
         default=[],
         help="Exclude files/folders (supports wildcards, can be used multiple times)",
     )
+    parser.add_argument(
+        "--content-encoding",
+        help="Content-Encoding header to apply to uploaded files",
+        default=None,
+    )
     args = parser.parse_args()
-    sync(args.source, args.dest, args.workers, args.acl, args.dryrun, args.exclude, args.verbose, args.max_objects)
+    sync(
+        args.source,
+        args.dest,
+        args.workers,
+        args.acl,
+        args.dryrun,
+        args.exclude,
+        args.verbose,
+        args.max_objects,
+        args.content_encoding,
+    )
