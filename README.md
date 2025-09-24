@@ -10,18 +10,22 @@ Deploy to S3 by checking whether the file contents have actually changed, rather
 
 ### Usage
 ```bash
-python s3-sync-changes.py [-h] [--acl ACL] [--dryrun] [--workers WORKERS] [--max-objects MAX_OBJECTS] [--verbose] [--exclude EXCLUDE] source dest
+python s3-sync-changes.py [-h] [--acl ACL] [--dryrun] [--workers WORKERS] [--max-objects MAX_OBJECTS] [--verbose] [--exclude EXCLUDE] [--content-encoding ENCODING] [--auto-content-type] source dest
 ```
 
 It calls the `aws s3api` command under-the-hood, so please ensure that [AWS CLI](https://docs.aws.amazon.com/streams/latest/dev/setup-awscli.html) is installed and configured correctly.
 
 ### Example
+
 ```bash
-python s3-sync-changes.py . s3://my-bucket/path/to/dir --exclude .git --exclude README.md --acl public-read
+python s3-sync-changes.py . s3://my-bucket/path/to/dir --exclude .git --exclude README.md --acl public-read --auto-content-type
 ```
 
+#### About --auto-content-type
+Use `--auto-content-type` to automatically set the `Content-Type` header based on the file extension (using Python's `mimetypes`). This helps browsers and clients interpret files correctly when served from S3.
+
 ### How does this work?
-It calls `aws s3api list-objects-v2` upon a bucket (with an optional `prefix`), and compares the returned `Etag` values with the `Etag` values of the local files. It then uploads the changed files by calling `aws s3api put-object` for each file.
+It calls `aws s3api list-objects-v2` upon a bucket (with an optional `prefix`), and compares the returned `Etag` values with the `Etag` values of the local files. It then uploads the changed files by calling `aws s3 cp` for each file, applying any specified flags such as `--acl`, `--content-encoding`, and `--content-type` (if `--auto-content-type` is enabled).
 
 The files are uploaded on multiple threads, configurable using the `--workers` argument. E.g. `--workers 4` to upload on 4 threads.
 
