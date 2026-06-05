@@ -72,3 +72,6 @@ If you use the `--acl` option, you will also need `s3:PutObjectAcl` permission:
 ```
 
 Replace `YOUR_BUCKET_NAME` with the actual name of your S3 bucket.
+
+# Usage
+Used in production by [https://findstarlink.com](https://findstarlink.com)
